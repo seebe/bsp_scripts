@@ -26,19 +26,16 @@ DOCKER_TEXT=("disable" "enable")
 APP_FRAMEWORK_TEXT=("None" "Qt" "HTML5")
 INTERNET_TEXT=("Not Available (packages must be supplied)" "Available (packages will be downloaded)")
 RT_TEXT=("No (Standard kernel)" "Yes (Realtime Linux kernel)")
-HDMI_TEXT=("Disabled" "Enabled")
-CIP_MODE_TEXT=("Buster-full" "Buster-limited" "Jessie" "Default Yocto Packages")
+CIP_MODE_TEXT=("Buster-full" "Buster-limited" "Jessie" "none (Default Yocto Packages)")
 
 # Supported Boards
 BOARD_NAME=(\
-	"RZ/G2E EK874 by Silicon Linux (Rev A,B,C)" \
-	"RZ/G2E EK874 by Silicon Linux (Rev D,E)" \
+	"RZ/G2E EK874 by Silicon Linux" \
 	"RZ/G2N HiHope by Hoperun Technology" \
 	"RZ/G2M HiHope by Hoperun Technology" \
 	"RZ/G2H HiHope by Hoperun Technology" \
 	)
 BOARD_MACHINE=(\
-	"ek874" \
 	"ek874" \
 	"hihope-rzg2n" \
 	"hihope-rzg2m" \
@@ -93,11 +90,14 @@ function check_host_os
 #   Exit if a package not found
 {
   grep "Ubuntu 16.04" /etc/issue > /dev/null 2>&1
-  if [ "$?" != "0" ] ; then
+  ubuntu_1604_check="$?"
+  grep "Ubuntu 18.04" /etc/issue > /dev/null 2>&1
+  ubuntu_1804_check="$?"
+  if [ "$ubuntu_1804_check" != "0" ] && [ "$ubuntu_1604_check" != "0" ] ; then
 
     echo -en "\n"\
-	"WARNING: You must use Ubuntu 16.04 as your host OS (or container) to build this Yocto BSP.\n"\
-	"         You may configure your BSP now, but please switch to a Ubuntu 16.04 container before\n"\
+	"WARNING: You must use Ubuntu 18.04 or Ubuntu 16.04 as your host OS (or container) to build this Yocto BSP.\n"\
+	"         You may configure your BSP now, but please switch to a Ubuntu 18.04 or 16.04 container before\n"\
 	"         attempting to build.\n\n"\
 	"Press Enter to continue..."
     read dummy
@@ -223,7 +223,6 @@ function do_menu_board()
 	"2.   ${BOARD_NAME[1]}" "" \
 	"3.   ${BOARD_NAME[2]}" "" \
 	"4.   ${BOARD_NAME[3]}" "" \
-	"5.   ${BOARD_NAME[4]}" "" \
 	3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 0 ] ; then
@@ -232,7 +231,6 @@ function do_menu_board()
       2.\ *) BOARD=1 ;;
       3.\ *) BOARD=2 ;;
       4.\ *) BOARD=3 ;;
-      5.\ *) BOARD=4 ;;
       *) whiptail --msgbox "Unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $SELECT" 20 60 1
   fi
@@ -320,27 +318,6 @@ Switch among build setting Buster-full, Buster-limited and Jessie
 }
 
 ##################################
-function do_menu_hdmi()
-{
-  TEXT="
-Select if you plan to use the HDMI output on the board.
-An additional patch needs to be applied before your first build.
-"
-  SELECT=$(whiptail --title "HDMI Selection" --menu "$TEXT\n\nYou may use ESC+ESC to cancel." 0 0 0 \
-	"1.   ${HDMI_TEXT[0]}" "" \
-	"2.   ${HDMI_TEXT[1]}" "" \
-	3>&1 1>&2 2>&3)
-  RET=$?
-  if [ $RET -eq 0 ] ; then
-    case "$SELECT" in
-      1.\ *) HDMI=0 ;;
-      2.\ *) HDMI=1 ;;
-      *) whiptail --msgbox "Unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $SELECT" 20 60 1
-  fi
-}
-
-##################################
 function do_menu_gplv3()
 {
   TEXT="
@@ -351,7 +328,7 @@ versions which support GPLv2.
 When GPLv3 packages are blocked, this will be added to your local.conf
 INCOMPATIBLE_LICENSE = \"GPLv3 GPLv3+\"
 "
-  SELECT=$(whiptail --title "HDMI Selection" --menu "$TEXT\n\nYou may use ESC+ESC to cancel." 0 0 0 \
+  SELECT=$(whiptail --title "GPLv3 Selection" --menu "$TEXT\n\nYou may use ESC+ESC to cancel." 0 0 0 \
 	"1.   ${GPLV3_TEXT[0]}" "" \
 	"2.   ${GPLV3_TEXT[1]}" "" \
 	3>&1 1>&2 2>&3)
@@ -425,14 +402,13 @@ root=,blue
 	--default-item "$LAST_SELECT" \
 	"1.                       Board:" "  ${BOARD_NAME[$BOARD]}"  \
 	"2.             Realtime kernel:" "  ${RT_TEXT[$RT]}"  \
-	"3.                 Enable HDMI:" "  ${HDMI_TEXT[$HDMI]}"  \
-	"4.                  Boot Flash:" "  ${FLASH_TEXT[$FLASH]}" \
-	"5.                    ECC Mode:" "  $ECC_MODE"  \
-	"6.                    CIP Mode:" "  ${CIP_MODE_TEXT[$CIP_MODE]}"  \
-	"7.                      Docker:" "  ${DOCKER_TEXT[$DOCKER]}"  \
-	"8.       Application Framework:" "  ${APP_FRAMEWORK_TEXT[$APP_FRAMEWORK]}"  \
-	"9.         Internet Connection:" "  ${INTERNET_TEXT[$INTERNET]}"  \
-	"10.               GPLv3 GPLv3+:" "  ${GPLV3_TEXT[$GPLV3]}"  \
+	"3.                  Boot Flash:" "  ${FLASH_TEXT[$FLASH]}" \
+	"4.                    ECC Mode:" "  $ECC_MODE"  \
+	"5.                    CIP Mode:" "  ${CIP_MODE_TEXT[$CIP_MODE]}"  \
+	"6.                      Docker:" "  ${DOCKER_TEXT[$DOCKER]}"  \
+	"7.       Application Framework:" "  ${APP_FRAMEWORK_TEXT[$APP_FRAMEWORK]}"  \
+	"8.         Internet Connection:" "  ${INTERNET_TEXT[$INTERNET]}"  \
+	"9.                GPLv3 GPLv3+:" "  ${GPLV3_TEXT[$GPLV3]}"  \
 	3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ] ; then
@@ -444,14 +420,13 @@ root=,blue
     case "$SELECT" in
       1.\ *) do_menu_board ;;
       2.\ *) show_advanced_msg ;;
-      3.\ *) do_menu_hdmi ;;
-      4.\ *) if [ "$ADVANCED" == "1" ] ; then do_menu_target_flash ; else show_advanced_msg ; fi ;;
-      5.\ *) do_menu_ecc ;;
-      6.\ *) do_menu_cip_mode ;;
-      7.\ *) do_menu_docker ;;
-      8.\ *) show_advanced_msg ;;
-      9.\ *) do_menu_internet ;;
-      10.\ *) do_menu_gplv3 ;;
+      3.\ *) if [ "$ADVANCED" == "1" ] ; then do_menu_target_flash ; else show_advanced_msg ; fi ;;
+      4.\ *) do_menu_ecc ;;
+      5.\ *) do_menu_cip_mode ;;
+      6.\ *) do_menu_docker ;;
+      7.\ *) whiptail --msgbox "Only Qt can be built using this setup.\nIf you want to build the BSP for HTML5, please refer to\nthe document \"Release Note for HTML5\" for the detailed instructions." 0 0 0 ;;
+      8.\ *) do_menu_internet ;;
+      9.\ *) do_menu_gplv3 ;;
       *) whiptail --msgbox "Unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $SELECT" 20 60 1
   else
@@ -483,7 +458,6 @@ APP_FRAMEWORK=1 # Qt
 INTERNET=1 # Download packages from Internet
 ECC_MODE="None" # No ECC
 RT=0
-HDMI=1
 
 # Determine what BSP we are using
 detect_bsp
@@ -532,7 +506,9 @@ if [ ! -e "build" ] ; then
   echo "Copying the default configuration files for the target board..."
   cp -v meta-rzg2/docs/sample/conf/${BOARD_MACHINE[$BOARD]}/linaro-gcc/*.conf build/conf/
 
-  if [ "HDMI" == "1" [ ; then
+  # Apply HDMI patches if exits
+  ls extra/*HDMI*.patch > /dev/null 2>&1
+  if [ "$?" == "0" ] ; then
     echo "Applying HDMI patches..."
     patch -i extra/*HDMI*.patch
   fi
@@ -582,9 +558,14 @@ if [ "$ECC_MODE" != "None" ] ; then
 fi
 
 # CIP Mode : $CIP_MODE
-if [ "$CIP_MODE" != "Buster-full" ] ; then
-  # CIP mode
-  sed -i "s/CIP_MODE = \"Buster-full\"/CIP_MODE = \"${CIP_MODE_TEXT[$CIP_MODE]}\"/g" $LOCAL_CONF
+if [ "$CIP_MODE" != "0" ] ; then
+  if [ "$CIP_MODE" == "3" ] ; then
+    sed -i "s/CIP_MODE = \"Buster-full\"/CIP_MODE = \"none\"/g" $LOCAL_CONF
+  else
+    sed -i "s/CIP_MODE = \"Buster-full\"/CIP_MODE = \"${CIP_MODE_TEXT[$CIP_MODE]}\"/g" $LOCAL_CONF
+    #BBMASK_append_cipcore = "|perl_debian"
+    sed -i "s/.*|perl_debian.*/#BBMASK_append_cipcore = \"|perl_debian\"/g" $LOCAL_CONF
+  fi
 fi
 
 # Docker : $DOCKER
@@ -613,7 +594,3 @@ if [ "$GPLV3" == "1" ] ; then
   #Comment out this line:  INCOMPATIBLE_LICENSE = "GPLv3 GPLv3+"
   sed -i "s/INCOMPATIBLE_LICENSE/#INCOMPATIBLE_LICENSE/g" $LOCAL_CONF
 fi
-
-
-BB_NO_NETWORK = "0"
-
